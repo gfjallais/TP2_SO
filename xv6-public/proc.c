@@ -218,6 +218,8 @@ fork(void)
 
   release(&ptable.lock);
 
+  np->priority = 2; // prioridade inicial = 2 por padrao
+
   return pid;
 }
 
@@ -340,7 +342,7 @@ scheduler(void)
         continue;
 
       ticks++;
-
+      // Preempcao
       if (ticks == INTERV)
       {
           // Reseta o contador
