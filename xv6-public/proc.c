@@ -261,7 +261,7 @@ exit(void)
     }
   }
 
-  // Jump into the scheduler, never to return.
+  // Jump into the , never to return.
   curproc->state = ZOMBIE;
   sched();
   panic("zombie exit");
@@ -325,6 +325,9 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
+
+  // Variavel para contar o numero de ticks antes de uma preempcao
+  int ticks = 0;
   
   for(;;){
     // Enable interrupts on this processor.
@@ -335,6 +338,18 @@ scheduler(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
+
+      ticks++;
+
+      if (ticks == INTERV)
+      {
+          // Reseta o contador
+          ticks = 0;
+
+          // Forca uma troca de contexto
+          c->proc = 0;
+          switchkvm();
+      }
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
