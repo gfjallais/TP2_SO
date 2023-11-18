@@ -9,7 +9,14 @@
 
 struct {
   struct spinlock lock;
+
   struct proc proc[NPROC];
+
+  // 3 queues, uma para cada prioridade
+  struct proc* queue[3][NPROC];
+  // 3 numeros que indicam a quantidade de processos em cada fila
+  int priCount[3];
+
 } ptable;
 
 static struct proc *initproc;
@@ -24,6 +31,7 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+  
 }
 
 // Must be called with interrupts disabled
@@ -88,6 +96,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  p->priority = 2; // prioridade inicial = 2 por padrao
 
   release(&ptable.lock);
 
@@ -214,11 +224,14 @@ fork(void)
 
   acquire(&ptable.lock);
 
-  np->state = RUNNABLE;
+  ptable.priCount[np->priority]++;
+  ptable.queue[np->priority][ptable.priCount[np->priority]] = np;
+
+  np->state = RUNNABLE; 
 
   release(&ptable.lock);
 
-  np->priority = 2; // prioridade inicial = 2 por padrao
+ 
 
   return pid;
 }
@@ -324,7 +337,7 @@ wait(void)
 void
 scheduler(void)
 {
-  struct proc *p;
+  struct proc* p;
   struct cpu *c = mycpu();
   c->proc = 0;
 
@@ -334,39 +347,59 @@ scheduler(void)
   for(;;){
     // Enable interrupts on this processor.
     sti();
-
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+    
+    int priority;
+    
+    // loop para percorrer as filas
+    for(priority = 0; priority < 3; priority++){
+      
+      //enquanto a fila nao estiver vazia
+      while(ptable.priCount[priority] > -1) {
+        
+        p = ptable.queue[priority][0];
 
-      ticks++;
-      // Preempcao
-      if (ticks == INTERV)
-      {
-          // Reseta o contador
-          ticks = 0;
+        if(p->state != RUNNABLE)
+                continue;
+        int i;
 
-          // Forca uma troca de contexto
-          c->proc = 0;
-          switchkvm();
-      }
+        // removendo a primeira posicao
+        for (i = 0; i < ptable.priCount[priority]; i++) {
+            ptable.queue[priority][i] = ptable.queue[priority][i + 1];
+        }
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+        ticks++;
+        // Preempcao
+        if (ticks == INTERV)
+        {
+            // Reseta o contador
+            ticks = 0;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+            // Forca uma troca de contexto
+            c->proc = 0;
+            switchkvm();
+        }
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        ptable.priCount[priority]--;
+        
+        // Switch to chosen process.  It is the process's job
+        // to release ptable.lock and then reacquire it
+        // before jumping back to us.
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+
+        // Process is done running for now.
+        // It should have changed its p->state before coming back.
+        c->proc = 0;
+
+      }     
     }
+
     release(&ptable.lock);
 
   }
