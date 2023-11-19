@@ -353,7 +353,7 @@ scheduler(void)
     int priority;
     
     // loop para percorrer as filas
-    for(priority = 0; priority < 3; priority++){
+    for(priority = 2; priority > -1; priority--){
       
       //enquanto a fila nao estiver vazia
       while(ptable.priCount[priority] > -1) {
@@ -382,7 +382,7 @@ scheduler(void)
         }
 
         ptable.priCount[priority]--;
-        
+
         // Switch to chosen process.  It is the process's job
         // to release ptable.lock and then reacquire it
         // before jumping back to us.
@@ -435,6 +435,7 @@ sched(void)
 void
 yield(void)
 {
+ 
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
@@ -511,7 +512,10 @@ wakeup1(void *chan)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
-      p->state = RUNNABLE;
+          ptable.priCount[p->priority]++;
+          ptable.queue[p->priority][ptable.priCount[p->priority]] = p;
+          p->state = RUNNABLE;
+      
 }
 
 // Wake up all processes sleeping on chan.
@@ -537,7 +541,11 @@ kill(int pid)
       p->killed = 1;
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
+
+        ptable.priCount[p->priority]++;
+        ptable.queue[p->priority][ptable.priCount[p->priority]] = p;
         p->state = RUNNABLE;
+
       release(&ptable.lock);
       return 0;
     }
