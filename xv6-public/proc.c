@@ -305,10 +305,13 @@ wait(void)
         kfree(p->kstack);
         p->kstack = 0;
         freevm(p->pgdir);
+  
+        p->n_ticks = 0;
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
+        p->ctime = 0;
         p->state = UNUSED;
         release(&ptable.lock);
         return pid;
@@ -353,35 +356,23 @@ scheduler(void)
     int priority;
     
     // loop para percorrer as filas
-    for(priority = 2; priority > -1; priority--){
+    for(priority = 3; priority >= 1; priority--){
       
       //enquanto a fila nao estiver vazia
-      while(ptable.priCount[priority] > -1) {
+      while(ptable.priCount[priority-1] > -1) {
         
-        p = ptable.queue[priority][0];
+        p = ptable.queue[priority-1][0]; //FIFO
 
         if(p->state != RUNNABLE)
                 continue;
         int i;
 
         // removendo a primeira posicao
-        for (i = 0; i < ptable.priCount[priority]; i++) {
-            ptable.queue[priority][i] = ptable.queue[priority][i + 1];
+        for (i = 0; i < ptable.priCount[priority-1]; i++) {
+            ptable.queue[priority-1][i] = ptable.queue[priority-1][i + 1];
         }
 
-        ticks++;
-        // Preempcao
-        if (ticks == INTERV)
-        {
-            // Reseta o contador
-            ticks = 0;
-
-            // Forca uma troca de contexto
-            c->proc = 0;
-            switchkvm();
-        }
-
-        ptable.priCount[priority]--;
+        ptable.priCount[priority-1]--;
 
         // Switch to chosen process.  It is the process's job
         // to release ptable.lock and then reacquire it
@@ -589,4 +580,38 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+
+// Funcao para atualizar os tempos dos processos
+// n_ticks: num de ticks utilizados pelo processo enquanto estiver no estado RUNNING. Utilizado para a preempcao de tempo
+// ctime: tempo de criacao do processo
+// rutime: quanto tempo o processo ja executou
+// retime: tempo de waiting
+
+void 
+update_time()
+{
+
+  struct proc *p;
+  acquire(&ptable.lock);
+
+  for(p=ptable.proc;p < &ptable.proc[NPROC];p++)
+  {
+
+    if(p->state == RUNNING)
+    {
+      p->rutime ++;
+      p->ctime++;
+      p->n_ticks++;
+    }
+
+    if(p->state == RUNNABLE)
+    {
+      p->retime++; // READY TIME
+      p->ctime++;
+    }
+
+  }
+  release(&ptable.lock);
 }
