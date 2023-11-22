@@ -31,9 +31,9 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
-  ptable.priCount[0] = -1;
-  ptable.priCount[1] = -1;
-  ptable.priCount[2] = -1;
+  ptable.priCount[0] = 0;
+  ptable.priCount[1] = 0;
+  ptable.priCount[2] = 0;
 
 }
 
@@ -91,8 +91,9 @@ allocproc(void)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
   {
-    if(p->state == UNUSED)
+    if(p->state == UNUSED) {
       goto found;
+    }
   }
   release(&ptable.lock);
   return 0;
@@ -103,8 +104,9 @@ found:
 
   p->priority = 2; // prioridade inicial = 2 por padrao
 
-  ptable.priCount[p->priority-1]++;
   ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
+  ptable.priCount[p->priority-1]++;
+
 
   p->ctime = 0; 
   p->stime = 0;     
@@ -236,19 +238,12 @@ fork(void)
 
   pid = np->pid;
 
-  // np->priority = 2;
-
   acquire(&ptable.lock);
-
-  // ptable.priCount[np->priority-1]++;
-  // ptable.queue[np->priority-1][ptable.priCount[np->priority-1]] = np;
 
   np->state = RUNNABLE; 
 
   release(&ptable.lock);
 
-  // cprintf("alocou pname: %s pid: %d\n", np->name, np->pid);
- 
   return pid;
 }
 
@@ -345,10 +340,22 @@ wait(void)
   }
 }
 
-int 
-wait2(int* retime, int* rutime, int* stime) 
+int
+wait2(int* retime, int* rutime, int* stime)
 {
+  int pid, status;
 
+  // Obtém o pid do processo filho que terminou
+  pid = wait();
+  if (pid < 0) {
+    return -1;
+  }
+
+  *retime = myproc()->retime;
+  *rutime = myproc()->rutime;
+  *stime = myproc()->stime;
+
+  return 0;
 }
 
 //PAGEBREAK: 42
@@ -378,10 +385,9 @@ scheduler(void)
     for(int priority = 3; priority >= 1; priority--){
       
       //enquanto a fila nao estiver vazia
-      while(ptable.priCount[priority-1] > -1) {
+      while(ptable.priCount[priority-1] > 0) {
         
         p = ptable.queue[priority-1][0]; //FIFO
-  
         if(p->state != RUNNABLE)
                 continue;
         // removendo a primeira posicao
@@ -405,7 +411,7 @@ scheduler(void)
         // It should have changed its p->state before coming back.
         c->proc = 0;
 
-      }     
+      }
     }
 
     release(&ptable.lock);
@@ -491,8 +497,8 @@ yield(void)
     priority = myproc()->priority;
   }
 
-  ptable.priCount[priority-1]++;
   ptable.queue[priority-1][ptable.priCount[priority-1]] = myproc();
+  ptable.priCount[priority-1]++;
 
   myproc()->state = RUNNABLE;
 
@@ -577,8 +583,8 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
     {
-          ptable.priCount[p->priority-1]++;
           ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
+          ptable.priCount[p->priority-1]++;
           p->state = RUNNABLE;
     } 
 }
@@ -607,8 +613,8 @@ kill(int pid)
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
       {
-        ptable.priCount[p->priority-1]++;
         ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
+        ptable.priCount[p->priority-1]++;
         p->state = RUNNABLE;
       }
       release(&ptable.lock);
@@ -698,14 +704,12 @@ updatetime()
   // }
   for(int i = 2; i > -1; i--) {
     for(int j = 0; j < ptable.priCount[i]; j++) {
-      cprintf("oi\n");
       p = ptable.queue[i][j];
-      if(!p) continue;
       if(p->state == RUNNING)
       {
         p->rutime++;
         p->n_ticks++;
-        //cprintf("pid: %d ticks: %d\n", p->pid, p->n_ticks);
+        cprintf("pid: %d ticks: %d\n", p->pid, p->n_ticks);
       }
       
       if(p->state == RUNNABLE)
@@ -726,11 +730,11 @@ updatetime()
       {
         cprintf("process with pid: %d and priority: %d is being moved to priority %d queue after %d ticks\n", p->pid, p->priority, p->priority+1, p->timeinp);
         p->priority++;
-        ptable.priCount[p->priority-1]++;
-        ptable.priCount[p->priority-2]--;
         ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
+        ptable.priCount[p->priority-1]++;
         for(int k = j; k < ptable.priCount[p->priority-2]; k++) {
           ptable.queue[p->priority-2][k] = ptable.queue[p->priority-2][k+1];
+        ptable.priCount[p->priority-2]--;
         }
         cprintf("amount of process in q%d: %d and q%d: %d\n", ptable.priCount[p->priority-1], ptable.priCount[p->priority-2]);
       } 
