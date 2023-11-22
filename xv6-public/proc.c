@@ -103,8 +103,8 @@ found:
 
   p->priority = 2; // prioridade inicial = 2 por padrao
 
-  ptable.priCount[p->priority]++;
-  ptable.queue[p->priority][ptable.priCount[p->priority]] = p;
+  ptable.priCount[p->priority-1]++;
+  ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
 
   release(&ptable.lock);
 
@@ -235,8 +235,8 @@ fork(void)
 
   acquire(&ptable.lock);
 
-  ptable.priCount[np->priority]++;
-  ptable.queue[np->priority][ptable.priCount[np->priority]] = np;
+  ptable.priCount[np->priority-1]++;
+  ptable.queue[np->priority-1][ptable.priCount[np->priority-1]] = np;
 
   np->state = RUNNABLE; 
 
@@ -516,8 +516,8 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
     {
-          ptable.priCount[p->priority]++;
-          ptable.queue[p->priority][ptable.priCount[p->priority]] = p;
+          ptable.priCount[p->priority-1]++;
+          ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
           p->state = RUNNABLE;
     } 
 }
@@ -546,8 +546,8 @@ kill(int pid)
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
       {
-        ptable.priCount[p->priority]++;
-        ptable.queue[p->priority][ptable.priCount[p->priority]] = p;
+        ptable.priCount[p->priority-1]++;
+        ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
         p->state = RUNNABLE;
       }
       release(&ptable.lock);
