@@ -54,6 +54,7 @@ trap(struct trapframe *tf)
       wakeup(&ticks);
       release(&tickslock);
     }
+    updatetime();
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
@@ -106,9 +107,12 @@ trap(struct trapframe *tf)
      tf->trapno == T_IRQ0+IRQ_TIMER)
 
     // PREEMPCAO
-    if(myproc()->n_ticks > INTERV)
+    if(myproc()->n_ticks >= INTERV)
     {
       myproc()->n_ticks = 0;
+      
+      //cprintf("CHamou\n");
+      
       yield();
     }
 

@@ -90,8 +90,14 @@ sys_uptime(void)
   return xticks;
 }
 
+// int
+// sys_updatetime(void)
+// {
+//   return updatetime();
+// }
 
-int change_prio(int priority){
+int 
+change_prio(int priority){
 
   if (priority < 1 || priority > 3)
     return -1;
