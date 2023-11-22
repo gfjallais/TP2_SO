@@ -106,6 +106,7 @@ found:
   ptable.priCount[p->priority-1]++;
   ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
 
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -231,19 +232,19 @@ fork(void)
 
   pid = np->pid;
 
-  np->priority = 2;
+  // np->priority = 2;
 
   acquire(&ptable.lock);
 
-  ptable.priCount[np->priority-1]++;
-  ptable.queue[np->priority-1][ptable.priCount[np->priority-1]] = np;
+  // ptable.priCount[np->priority-1]++;
+  // ptable.queue[np->priority-1][ptable.priCount[np->priority-1]] = np;
 
   np->state = RUNNABLE; 
 
   release(&ptable.lock);
 
+  // cprintf("alocou pname: %s pid: %d\n", np->name, np->pid);
  
-
   return pid;
 }
 
@@ -356,19 +357,14 @@ scheduler(void)
   struct cpu *c = mycpu();
   c->proc = 0;
   
-
-  // Variavel para contar o numero de ticks antes de uma preempcao
-  
   for(;;){
     // Enable interrupts on this processor.
     sti();
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     
-    int priority;
-    
     // loop para percorrer as filas
-    for(priority = 3; priority >= 1; priority--){
+    for(int priority = 3; priority >= 1; priority--){
       
       //enquanto a fila nao estiver vazia
       while(ptable.priCount[priority-1] > -1) {
@@ -377,15 +373,14 @@ scheduler(void)
   
         if(p->state != RUNNABLE)
                 continue;
-        int i;
 
         // removendo a primeira posicao
-        for (i = 0; i < ptable.priCount[priority-1]; i++) {
+        for (int i = 0; i < ptable.priCount[priority-1]; i++) {
             ptable.queue[priority-1][i] = ptable.queue[priority-1][i + 1];
         }
 
         ptable.priCount[priority-1]--;
-
+        // cprintf("pname: %s pid: %d priority: %d\n", p->name, p->pid, p->priority);
         // Switch to chosen process.  It is the process's job
         // to release ptable.lock and then reacquire it
         // before jumping back to us.
