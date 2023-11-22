@@ -53,7 +53,8 @@ struct proc {
   int n_ticks;              // numero de ticks utilizados pelo processo
 
   int priority;                // Prioridade
-
+  int timeinp;
+  
   uint ctime; // Tempo quando o processo foi criado
   int stime; //Tempo SLEEPING
   int retime; //Tempo READY(RUNNABLE) time

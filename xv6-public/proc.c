@@ -106,6 +106,10 @@ found:
   ptable.priCount[p->priority-1]++;
   ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
 
+  p->ctime = 0; 
+  p->stime = 0;     
+  p->retime = 0;    
+  p->rutime = 0; 
 
   release(&ptable.lock);
 
@@ -341,6 +345,12 @@ wait(void)
   }
 }
 
+int 
+wait2(int* retime, int* rutime, int* stime) 
+{
+
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -374,7 +384,6 @@ scheduler(void)
   
         if(p->state != RUNNABLE)
                 continue;
-
         // removendo a primeira posicao
         for (int i = 0; i < ptable.priCount[priority-1]; i++) {
             ptable.queue[priority-1][i] = ptable.queue[priority-1][i + 1];
@@ -502,6 +511,7 @@ void
 forkret(void)
 {
   static int first = 1;
+
   // Still holding ptable.lock from scheduler.
   release(&ptable.lock);
 
@@ -647,6 +657,9 @@ procdump(void)
 }
 
 
+#define P1_TO_P2 5
+#define P2_TO_P3 100
+
 // Funcao para atualizar os tempos dos processos
 // n_ticks: num de ticks utilizados pelo processo enquanto estiver no estado RUNNING. Utilizado para a preempcao de tempo
 // ctime: tempo de criacao do processo
@@ -659,25 +672,70 @@ updatetime()
   struct proc *p;
 
   acquire(&ptable.lock);
+  // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  // {
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-  {
-
-    if(p->state == RUNNING)
-    {
-      p->rutime ++;
-      p->ctime++;
-      p->n_ticks++;
-
-      //cprintf("pid: %d ticks: %d\n", p->pid, p->n_ticks);
-    }
+  //   if(p->state == RUNNING)
+  //   {
+  //     p->rutime++;
+  //     p->n_ticks++;
+  //     //cprintf("pid: %d ticks: %d\n", p->pid, p->n_ticks);
+  //   }
      
-    if(p->state == RUNNABLE)
-    {
-      p->retime++; // READY TIME
-      p->ctime++;
-    }
+  //   if(p->state == RUNNABLE)
+  //   {
+  //     p->retime++; // READY TIME
+  //   }
 
+  //   if(p->state == SLEEPING)
+  //   {
+  //     p->stime++;
+  //   }
+    
+  //   p->timeinp++;
+  //   p->ctime++;
+
+  // }
+  for(int i = 2; i > -1; i--) {
+    for(int j = 0; j < ptable.priCount[i]; j++) {
+      cprintf("oi\n");
+      p = ptable.queue[i][j];
+      if(!p) continue;
+      if(p->state == RUNNING)
+      {
+        p->rutime++;
+        p->n_ticks++;
+        //cprintf("pid: %d ticks: %d\n", p->pid, p->n_ticks);
+      }
+      
+      if(p->state == RUNNABLE)
+      {
+        p->retime++; // READY TIME
+      }
+
+      if(p->state == SLEEPING)
+      {
+        p->stime++;
+      }
+      
+      p->timeinp++;
+      p->ctime++;
+      cprintf("%d %d %d %d\n", p->priority, p->timeinp, ptable.priCount[1], ptable.priCount[2]);
+      if((p->priority == 1 && p->timeinp >= P1_TO_P2 && ptable.priCount[1] < NPROC - 1)
+      || (p->priority == 2 && p->timeinp >= P2_TO_P3 && ptable.priCount[2] < NPROC - 1))
+      {
+        cprintf("process with pid: %d and priority: %d is being moved to priority %d queue after %d ticks\n", p->pid, p->priority, p->priority+1, p->timeinp);
+        p->priority++;
+        ptable.priCount[p->priority-1]++;
+        ptable.priCount[p->priority-2]--;
+        ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
+        for(int k = j; k < ptable.priCount[p->priority-2]; k++) {
+          ptable.queue[p->priority-2][k] = ptable.queue[p->priority-2][k+1];
+        }
+        cprintf("amount of process in q%d: %d and q%d: %d\n", ptable.priCount[p->priority-1], ptable.priCount[p->priority-2]);
+      } 
+      
+    }
   }
 
   release(&ptable.lock);
