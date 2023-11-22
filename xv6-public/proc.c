@@ -31,7 +31,10 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
-  
+  ptable.priCount[0] = -1;
+  ptable.priCount[1] = -1;
+  ptable.priCount[2] = -1;
+
 }
 
 // Must be called with interrupts disabled
@@ -87,9 +90,10 @@ allocproc(void)
   acquire(&ptable.lock);
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
     if(p->state == UNUSED)
       goto found;
-
+  }
   release(&ptable.lock);
   return 0;
 
@@ -98,6 +102,9 @@ found:
   p->pid = nextpid++;
 
   p->priority = 2; // prioridade inicial = 2 por padrao
+
+  ptable.priCount[p->priority]++;
+  ptable.queue[p->priority][ptable.priCount[p->priority]] = p;
 
   release(&ptable.lock);
 
@@ -194,6 +201,8 @@ fork(void)
   struct proc *np;
   struct proc *curproc = myproc();
 
+
+
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
@@ -221,6 +230,8 @@ fork(void)
   safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
   pid = np->pid;
+
+  np->priority = 2;
 
   acquire(&ptable.lock);
 
@@ -340,12 +351,13 @@ wait(void)
 void
 scheduler(void)
 {
+
   struct proc* p;
   struct cpu *c = mycpu();
   c->proc = 0;
+  
 
   // Variavel para contar o numero de ticks antes de uma preempcao
-  int ticks = 0;
   
   for(;;){
     // Enable interrupts on this processor.
@@ -362,7 +374,7 @@ scheduler(void)
       while(ptable.priCount[priority-1] > -1) {
         
         p = ptable.queue[priority-1][0]; //FIFO
-
+  
         if(p->state != RUNNABLE)
                 continue;
         int i;
@@ -503,10 +515,11 @@ wakeup1(void *chan)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
+    {
           ptable.priCount[p->priority]++;
           ptable.queue[p->priority][ptable.priCount[p->priority]] = p;
           p->state = RUNNABLE;
-      
+    } 
 }
 
 // Wake up all processes sleeping on chan.
@@ -532,11 +545,11 @@ kill(int pid)
       p->killed = 1;
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
-
+      {
         ptable.priCount[p->priority]++;
         ptable.queue[p->priority][ptable.priCount[p->priority]] = p;
         p->state = RUNNABLE;
-
+      }
       release(&ptable.lock);
       return 0;
     }
@@ -589,29 +602,29 @@ procdump(void)
 // rutime: quanto tempo o processo ja executou
 // retime: tempo de waiting
 
-void 
-update_time()
-{
+// void 
+// update_time()
+// {
 
-  struct proc *p;
-  acquire(&ptable.lock);
+//   struct proc *p;
+//   acquire(&ptable.lock);
 
-  for(p=ptable.proc;p < &ptable.proc[NPROC];p++)
-  {
+//   for(p=ptable.proc;p < &ptable.proc[NPROC];p++)
+//   {
 
-    if(p->state == RUNNING)
-    {
-      p->rutime ++;
-      p->ctime++;
-      p->n_ticks++;
-    }
+//     if(p->state == RUNNING)
+//     {
+//       p->rutime ++;
+//       p->ctime++;
+//       p->n_ticks++;
+//     }
 
-    if(p->state == RUNNABLE)
-    {
-      p->retime++; // READY TIME
-      p->ctime++;
-    }
+//     if(p->state == RUNNABLE)
+//     {
+//       p->retime++; // READY TIME
+//       p->ctime++;
+//     }
 
-  }
-  release(&ptable.lock);
-}
+//   }
+//   release(&ptable.lock);
+// }
