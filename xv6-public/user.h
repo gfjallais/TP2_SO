@@ -23,6 +23,7 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int wait2(int* retime, int* rutime, int* stime);
 // int updatetime(void);
 
 // ulib.c
