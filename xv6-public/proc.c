@@ -343,10 +343,8 @@ wait(void)
 int
 wait2(int* retime, int* rutime, int* stime)
 {
-  int pid, status;
-
   // Obtém o pid do processo filho que terminou
-  pid = wait();
+  int pid = wait();
   if (pid < 0) {
     return -1;
   }
@@ -724,19 +722,29 @@ updatetime()
       
       p->timeinp++;
       p->ctime++;
-      cprintf("%d %d %d %d\n", p->priority, p->timeinp, ptable.priCount[1], ptable.priCount[2]);
-      if((p->priority == 1 && p->timeinp >= P1_TO_P2 && ptable.priCount[1] < NPROC - 1)
+      if((p->priority == 1 && p->timeinp >= P1_TO_P2 && ptable.priCount[1] < NPROC - 1) \
       || (p->priority == 2 && p->timeinp >= P2_TO_P3 && ptable.priCount[2] < NPROC - 1))
       {
-        cprintf("process with pid: %d and priority: %d is being moved to priority %d queue after %d ticks\n", p->pid, p->priority, p->priority+1, p->timeinp);
+        // cprintf("process with pid: %d and priority: %d is being moved to priority %d queue after %d ticks\n", p->pid, p->priority, p->priority+1, p->timeinp);
+        // cprintf("process on queue %d before change:\n", p->priority);
+        // for(int l = 0; l < ptable.priCount[p->priority-1]; l++) {
+        //   cprintf("%d ", ptable.queue[p->priority-1][l]->pid);
+        // }
+        // cprintf("\n");
         p->priority++;
         ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
         ptable.priCount[p->priority-1]++;
+        // cprintf("j: %d and ptable.priCount[p->priority-2]: %d\n", j, ptable.priCount[p->priority-2]);
         for(int k = j; k < ptable.priCount[p->priority-2]; k++) {
           ptable.queue[p->priority-2][k] = ptable.queue[p->priority-2][k+1];
-        ptable.priCount[p->priority-2]--;
         }
-        cprintf("amount of process in q%d: %d and q%d: %d\n", ptable.priCount[p->priority-1], ptable.priCount[p->priority-2]);
+        ptable.priCount[p->priority-2]--;
+        // cprintf("amount of process in q%d: %d and q%d: %d\n", p->priority-1, ptable.priCount[p->priority-1], p->priority-2, ptable.priCount[p->priority-2]);
+        // cprintf("process on queue %d after change:\n", p->priority-1);
+        // for(int l = 0; l < ptable.priCount[p->priority-2]; l++) {
+        //   cprintf("%d ", ptable.queue[p->priority-2][l]->pid);
+        // }
+        // cprintf("\n");
       } 
       
     }
