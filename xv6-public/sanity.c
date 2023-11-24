@@ -1,5 +1,5 @@
-#include "user.h"
 #include "types.h"
+#include "user.h"
 // #include "defs.h"
 
 // Function prototypes
@@ -10,7 +10,7 @@ void io_bound();
 int main(int argc, char *argv[]) {
     if (argc != 2) {
 
-        cprintf("Usage: sanity <n>\n");
+        printf(1,"Usage: sanity <n>\n");
         exit();
     }
 
@@ -37,9 +37,9 @@ int main(int argc, char *argv[]) {
         int pid = wait2(&retime, &rutime, &stime);
 
         // Print statistics for each process
-        cprintf("Process %d (PID: %d)\n", i, pid);
-        cprintf("Type: %s\n", (i % 3 == 0) ? "CPU-Bound" : ((i % 3 == 1) ? "S-CPU" : "IO-Bound"));
-        cprintf("Waiting time: %d\nRunning time: %d\nSleeping time: %d\n", retime, rutime, stime);
+        printf(1,"Process %d (PID: %d)\n", i, pid);
+        printf(1,"Type: %s\n", (i % 3 == 0) ? "CPU-Bound" : ((i % 3 == 1) ? "S-CPU" : "IO-Bound"));
+        printf(1,"Waiting time: %d\nRunning time: %d\nSleeping time: %d\n", retime, rutime, stime);
     }
 
     // Print average statistics
