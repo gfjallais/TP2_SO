@@ -1,5 +1,6 @@
 #include "user.h"
-#include "proc.c"
+#include "types.h"
+#include "stat.h"
 
 // Function prototypes
 void cpu_bound();
