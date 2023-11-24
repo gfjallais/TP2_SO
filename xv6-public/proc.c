@@ -494,11 +494,6 @@ yield(void)
 
   myproc()->state = RUNNABLE;
 
-  
-
-  
-  
-
   sched();
   release(&ptable.lock);
 }

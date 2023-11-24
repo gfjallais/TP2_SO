@@ -1,6 +1,6 @@
 #include "user.h"
 #include "types.h"
-#include "stat.h"
+// #include "defs.h"
 
 // Function prototypes
 void cpu_bound();
@@ -9,6 +9,7 @@ void io_bound();
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
+
         cprintf("Usage: sanity <n>\n");
         exit();
     }
