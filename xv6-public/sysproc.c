@@ -96,15 +96,14 @@ sys_uptime(void)
 //   return updatetime();
 // }
 
-int 
-change_prio(int priority){
-
-  if (priority < 1 || priority > 3)
+int
+sys_change_prio(void)
+{
+  int prio;
+  if (argint(0, &prio) < 0)
     return -1;
 
-  myproc()->priority = priority;
-
-  return 0;
+  return change_prio(prio);
 }
 
 int

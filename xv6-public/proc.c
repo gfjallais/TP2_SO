@@ -107,6 +107,7 @@ found:
   ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
   ptable.priCount[p->priority-1]++;
 
+   cprintf("PRICOUNT %d\n", ptable.priCount[p->priority-1]);
 
   p->ctime = 0; 
   p->stime = 0;     
@@ -353,7 +354,7 @@ wait2(int* retime, int* rutime, int* stime)
   *rutime = myproc()->rutime;
   *stime = myproc()->stime;
 
-  return 0;
+  return pid;
 }
 
 //PAGEBREAK: 42
@@ -383,6 +384,7 @@ scheduler(void)
     for(int priority = 3; priority >= 1; priority--){
       
       //enquanto a fila nao estiver vazia
+
       while(ptable.priCount[priority-1] > 0) {
         
         p = ptable.queue[priority-1][0]; //FIFO
@@ -390,6 +392,7 @@ scheduler(void)
                 continue;
         // removendo a primeira posicao
         for (int i = 0; i < ptable.priCount[priority-1]; i++) {
+            
             ptable.queue[priority-1][i] = ptable.queue[priority-1][i + 1];
         }
 
@@ -688,10 +691,58 @@ updatetime()
   //   p->timeinp++;
   //   p->ctime++;
 
-  // }
+  //   if((p->priority == 1 && p->timeinp >= P1_TO_P2 && ptable.priCount[1] < NPROC - 1) 
+  //   || (p->priority == 2 && p->timeinp >= P2_TO_P3 && ptable.priCount[2] < NPROC - 1))
+  //   {
+
+  //     cprintf("AGING\n");
+
+  //     struct proc* aux;
+    
+  //     p->timeinp = 0;
+  //     cprintf("timeinp: %d ctime: %d\n", p->timeinp, p->ctime);
+  //     p->priority++;
+
+  //     cprintf("Prio: %d\n", p->priority);
+
+  //     int position = 0 ;
+  //     cprintf("PID: %d\n", p->pid);
+  //     //cprintf("PRICOUNT: %d\n",ptable.priCount[p->priority-2]);
+  //     aux = ptable.queue[p->priority-2][position];
+  //     cprintf("position: %d PID: %d\n", aux->pid);
+
+  //     for( position = 0; position < ptable.priCount[p->priority-2]; position++) {
+        
+  //       aux = ptable.queue[p->priority-2][position];
+
+  //       cprintf("position: %d PID: %d\n", aux->pid);
+  //       if( aux->pid == p->pid){
+  //         cprintf("igual\n");
+  //         break;
+  //       } 
+  //     }
+
+  //     for(int k = position; k <= ptable.priCount[p->priority-2]; k++) {
+  //       ptable.queue[p->priority-2][k] = ptable.queue[p->priority-2][k+1];
+  //     }
+  //     ptable.priCount[p->priority-2]--;
+
+    
+  //     ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
+  //     ptable.priCount[p->priority-1]++;
+
+      
+  //   } 
+
+    
+  // } 
+
+//}
+
   for(int i = 2; i > -1; i--) {
     for(int j = 0; j < ptable.priCount[i]; j++) {
       p = ptable.queue[i][j];
+
       if(p->state == RUNNING)
       {
         p->rutime++;
@@ -702,6 +753,7 @@ updatetime()
       if(p->state == RUNNABLE)
       {
         p->retime++; // READY TIME
+
       }
 
       if(p->state == SLEEPING)
@@ -712,10 +764,15 @@ updatetime()
       p->timeinp++;
       p->ctime++;
 
+      // cprintf("timeinp: %d ctime: %d\n", p->timeinp, p->ctime);
+      // cprintf("rutime: %d retime: %d stime: %d\n", p->rutime, p->retime, p->stime);
+
       // if(p->priority == 2) cprintf(".\n");
-      if((p->priority == 1 && p->timeinp >= P1_TO_P2 && ptable.priCount[1] < NPROC - 1) \
+      if((p->priority == 1 && p->timeinp >= P1_TO_P2 && ptable.priCount[1] < NPROC - 1) 
       || (p->priority == 2 && p->timeinp >= P2_TO_P3 && ptable.priCount[2] < NPROC - 1))
       {
+
+        //cprintf("AGING\n");
         // cprintf("process with pid: %d and priority: %d is being moved to priority %d queue after %d ticks\n", p->pid, p->priority, p->priority+1, p->timeinp);
         // cprintf("process on queues before change:\n");
         // for(int n = 2; n > -1; n--) {
@@ -725,9 +782,12 @@ updatetime()
         //   cprintf("\n");
         // }
         p->timeinp = 0;
+        //cprintf("timeinp: %d ctime: %d\n", p->timeinp, p->ctime);
         p->priority++;
+        
         ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
         ptable.priCount[p->priority-1]++;
+
         // cprintf("j: %d and ptable.priCount[p->priority-2]: %d\n", j, ptable.priCount[p->priority-2]);
         for(int k = j; k < ptable.priCount[p->priority-2]; k++) {
           ptable.queue[p->priority-2][k] = ptable.queue[p->priority-2][k+1];
@@ -747,6 +807,22 @@ updatetime()
   }
 
   release(&ptable.lock);
+
+  return 0;
+}
+
+
+int 
+change_prio(int prio)
+{
+  if (prio > 3 || prio < 1)
+    return -1;
+
+  struct proc *p = myproc();
+  if (!p) 
+    return -1;
+
+  p->priority = prio;
 
   return 0;
 }
