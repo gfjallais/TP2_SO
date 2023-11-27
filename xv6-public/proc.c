@@ -395,89 +395,89 @@ wait2(int *retime, int *rutime, int *stime) {
 //  - swtch to start running that process
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
-void
-scheduler(void)
-{
-  struct proc* p;
-  struct cpu *c = mycpu();
-  c->proc = 0;
-  
-  for(;;){
-
-    // Enable interrupts on this processor.
-    sti();
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    
-    // loop para percorrer as filas
-    for(int priority = 3; priority >= 1; priority--){
-      
-      //enquanto a fila nao estiver vazia
-      while(ptable.priCount[priority-1] > 0) {
-        
-        p = ptable.queue[priority-1][0]; //FIFO
-        if(p->state != RUNNABLE)
-          continue;
-        // removendo a primeira posicao
-        for (int i = 0; i < ptable.priCount[priority-1]; i++) {
-            ptable.queue[priority-1][i] = ptable.queue[priority-1][i + 1];
-        }
-
-        ptable.priCount[priority-1]--;
-        // cprintf("pname: %s pid: %d priority: %d\n", p->name, p->pid, p->priority);
-        // Switch to chosen process.  It is the process's job
-        // to release ptable.lock and then reacquire it
-        // before jumping back to us.
-        c->proc = p;
-        switchuvm(p);
-        p->state = RUNNING;
-
-        swtch(&(c->scheduler), p->context);
-        switchkvm();
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      }
-    }
-
-    release(&ptable.lock);
-  }
-}
-
 // void
 // scheduler(void)
 // {
-//   struct proc *p;
+//   struct proc* p;
 //   struct cpu *c = mycpu();
 //   c->proc = 0;
   
 //   for(;;){
+
 //     // Enable interrupts on this processor.
 //     sti();
-
 //     // Loop over process table looking for process to run.
 //     acquire(&ptable.lock);
-//     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-//       if(p->state != RUNNABLE)
-//         continue;
-//       // Switch to chosen process.  It is the process's job
-//       // to release ptable.lock and then reacquire it
-//       // before jumping back to us.
-//       c->proc = p;
-//       switchuvm(p);
-//       p->state = RUNNING;
+    
+//     // loop para percorrer as filas
+//     for(int priority = 3; priority >= 1; priority--){
+      
+//       //enquanto a fila nao estiver vazia
+//       while(ptable.priCount[priority-1] > 0) {
+        
+//         p = ptable.queue[priority-1][0]; //FIFO
+//         if(p->state != RUNNABLE)
+//           continue;
+//         // removendo a primeira posicao
+//         for (int i = 0; i < ptable.priCount[priority-1]; i++) {
+//             ptable.queue[priority-1][i] = ptable.queue[priority-1][i + 1];
+//         }
 
-//       swtch(&(c->scheduler), p->context);
-//       switchkvm();
+//         ptable.priCount[priority-1]--;
+//         // cprintf("pname: %s pid: %d priority: %d\n", p->name, p->pid, p->priority);
+//         // Switch to chosen process.  It is the process's job
+//         // to release ptable.lock and then reacquire it
+//         // before jumping back to us.
+//         c->proc = p;
+//         switchuvm(p);
+//         p->state = RUNNING;
 
-//       // Process is done running for now.
-//       // It should have changed its p->state before coming back.
-//       c->proc = 0;
+//         swtch(&(c->scheduler), p->context);
+//         switchkvm();
+//         // Process is done running for now.
+//         // It should have changed its p->state before coming back.
+//         c->proc = 0;
+//       }
 //     }
-//     release(&ptable.lock);
 
+//     release(&ptable.lock);
 //   }
 // }
+
+void
+scheduler(void)
+{
+  struct proc *p;
+  struct cpu *c = mycpu();
+  c->proc = 0;
+  
+  for(;;){
+    // Enable interrupts on this processor.
+    sti();
+
+    // Loop over process table looking for process to run.
+    acquire(&ptable.lock);
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE)
+        continue;
+      // Switch to chosen process.  It is the process's job
+      // to release ptable.lock and then reacquire it
+      // before jumping back to us.
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
+    }
+    release(&ptable.lock);
+
+  }
+}
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
@@ -676,7 +676,7 @@ procdump(void)
 }
 
 
-#define P1_TO_P2 5
+#define P1_TO_P2 200
 #define P2_TO_P3 100
 
 // Funcao para atualizar os tempos dos processos
@@ -710,23 +710,23 @@ updatetime()
     }
     p->ctime++;
     
-    if(p->state == RUNNABLE) {
-      if((p->priority == 1 && p->timeinp >= P1_TO_P2 && ptable.priCount[1] < NPROC - 1) || (p->priority == 2 && p->timeinp >= P2_TO_P3 && ptable.priCount[2] < NPROC - 1))
-      {
-        p->priority++;
-        ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
-        ptable.priCount[p->priority-1]++;
-        int init = 0;
-        for(init = 0; init < ptable.priCount[p->priority-2]; init++) {
-          if(p->pid == (ptable.queue[p->priority-2][init])->pid) break;
-        }
-        for(int k = init; k < ptable.priCount[p->priority-2]; k++) {
-          ptable.queue[p->priority-2][k] = ptable.queue[p->priority-2][k+1];
-        }
-        ptable.priCount[p->priority-2]--;
-        p->timeinp = 0;
-      }
-    }
+    // if(p->state == RUNNABLE) {
+    //   if((p->priority == 1 && p->timeinp >= P1_TO_P2 && ptable.priCount[1] < NPROC - 1) || (p->priority == 2 && p->timeinp >= P2_TO_P3 && ptable.priCount[2] < NPROC - 1))
+    //   {
+    //     p->priority++;
+    //     ptable.queue[p->priority-1][ptable.priCount[p->priority-1]] = p;
+    //     ptable.priCount[p->priority-1]++;
+    //     int init = 0;
+    //     for(init = 0; init < ptable.priCount[p->priority-2]; init++) {
+    //       if(p->pid == (ptable.queue[p->priority-2][init])->pid) break;
+    //     }
+    //     for(int k = init; k < ptable.priCount[p->priority-2]; k++) {
+    //       ptable.queue[p->priority-2][k] = ptable.queue[p->priority-2][k+1];
+    //     }
+    //     ptable.priCount[p->priority-2]--;
+    //     p->timeinp = 0;
+    //   }
+    // }
   }
   release(&ptable.lock);
 
