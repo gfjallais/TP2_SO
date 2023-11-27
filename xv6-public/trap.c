@@ -54,13 +54,10 @@ trap(struct trapframe *tf)
       wakeup(&ticks);
       release(&tickslock);
     }
-
     updatetime();
-    
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
-  
     ideintr();
     lapiceoi();
     break;
