@@ -51,10 +51,10 @@ trap(struct trapframe *tf)
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
+      updatetime();
       wakeup(&ticks);
       release(&tickslock);
     }
-    updatetime();
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
