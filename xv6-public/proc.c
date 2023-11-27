@@ -732,3 +732,18 @@ updatetime()
 
   return 0;
 }
+
+int 
+change_prio(int prio)
+{
+  if (prio > 3 || prio < 1)
+    return -1;
+
+  struct proc *p = myproc();
+  if (!p) 
+    return -1;
+
+  p->priority = prio;
+
+  return 0;
+}
