@@ -87,7 +87,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
     
-    printf(1,"cpu: %d scpu: %d io: %d\n", cpu, scpu, io);
 
 	for (int i = 0; i < 3; i++)
 		for (int j = 0; j < 3; j++)
